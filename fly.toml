@@ -1,23 +1,28 @@
-# Configuração do Fly.io para o bot de loja.
-# É um WORKER: não escuta porta HTTP, só mantém a conexão gateway com o Discord.
-# Por isso não há seção [http_service]/[[services]] e a máquina fica sempre ligada
-# (não há tráfego de entrada para "acordar" o bot).
+# fly.toml app configuration file generated for botsloja on 2026-10-17T19:24:51Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "loja-bot"            # troque por um nome único (fly apps create define isto)
-primary_region = "gru"     # São Paulo (mais perto do Brasil). Veja: fly platform regions
+app = 'botsloja'
+primary_region = 'gru'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
-# Registra os comandos slash no servidor a cada deploy (idempotente).
 [deploy]
-  release_command = "npm run deploy-commands"
+  release_command = 'npm run deploy-commands'
+
+[processes]
+  app = 'npm run bot'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
-
-# Processo do worker. Como não há serviço HTTP, a máquina fica sempre ligada
-# (worker sem tráfego de entrada — nada para "acordar" o bot depois).
-[processes]
-  app = "npm run bot"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
