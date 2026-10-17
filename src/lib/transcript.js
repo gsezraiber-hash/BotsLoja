@@ -50,15 +50,22 @@ function authorColor(message) {
 // imagem fica salva dentro da própria transcrição e continua visível mesmo
 // depois que o canal é apagado e a URL do CDN do Discord expira.
 // Limita o tamanho pra não gerar HTMLs gigantescos; acima disso, cai no link.
-const MAX_INLINE_BYTES = 8 * 1024 * 1024; // 8 MB por imagem
+const MAX_INLINE_BYTES = 1.5 * 1024 * 1024; // 1,5 MB por imagem
+// Orçamento total de imagens embutidas: mantém o HTML abaixo do limite de upload
+// do Discord e a memória do processo baixa (a VM é pequena).
+const MAX_TOTAL_INLINE_BYTES = 6 * 1024 * 1024;
+// Limite de upload do Discord pra bots (com folga).
+const MAX_ATTACHMENT_BYTES = 9.5 * 1024 * 1024;
 
-async function toDataURI(att) {
-  if (att.size && att.size > MAX_INLINE_BYTES) return null;
+async function toDataURI(att, budget) {
+  if (!budget) return null;
+  if (att.size && (att.size > MAX_INLINE_BYTES || att.size > budget.left)) return null;
   try {
-    const res = await fetch(att.url);
+    const res = await fetch(att.url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length > MAX_INLINE_BYTES) return null;
+    if (buf.length > MAX_INLINE_BYTES || buf.length > budget.left) return null;
+    budget.left -= buf.length;
     const mime = att.contentType || 'image/png';
     return `data:${mime};base64,${buf.toString('base64')}`;
   } catch {
@@ -66,20 +73,21 @@ async function toDataURI(att) {
   }
 }
 
-async function renderAttachments(message) {
+async function renderAttachments(message, budget) {
   if (message.attachments.size === 0) return '';
-  const items = await Promise.all(
-    [...message.attachments.values()].map(async (att) => {
+  const items = [];
+  for (const att of message.attachments.values()) {
+    items.push(await (async () => {
       const isImage = (att.contentType || '').startsWith('image/');
       if (isImage) {
-        const data = await toDataURI(att);
+        const data = await toDataURI(att, budget);
         // Se conseguiu embutir, usa o data URI; senão, mantém o link original.
         const src = data || att.url;
         return `<a href="${esc(att.url)}" target="_blank"><img class="att-img" src="${esc(src)}" alt="${esc(att.name)}"></a>`;
       }
       return `<a class="att-file" href="${esc(att.url)}" target="_blank">📎 ${esc(att.name)}</a>`;
-    }),
-  );
+    })());
+  }
   return `<div class="attachments">${items.join('')}</div>`;
 }
 
@@ -103,7 +111,7 @@ function renderEmbeds(message) {
     .join('');
 }
 
-async function renderMessage(message) {
+async function renderMessage(message, budget) {
   const avatar = message.author.displayAvatarURL({ extension: 'png', size: 64 });
   const name = message.member?.displayName || message.author.username;
   const content = message.content
@@ -120,7 +128,7 @@ async function renderMessage(message) {
         </div>
         ${content}
         ${renderEmbeds(message)}
-        ${await renderAttachments(message)}
+        ${await renderAttachments(message, budget)}
       </div>
     </div>`;
 }
@@ -180,8 +188,11 @@ export async function buildTranscriptHTML(channel, messages) {
 // Gera a transcrição do canal e devolve um anexo .html pronto pra enviar.
 export async function createTranscriptAttachment(channel) {
   const messages = await fetchAllMessages(channel);
-  const html = await buildTranscriptHTML(channel, messages);
-  const buffer = Buffer.from(html, 'utf8');
+  let buffer = Buffer.from(await buildTranscriptHTML(channel, messages), 'utf8');
+  // Ainda grande demais pro upload? Refaz sem embutir imagens (só links).
+  if (buffer.length > MAX_ATTACHMENT_BYTES) {
+    buffer = Buffer.from(await buildTranscriptHTML(channel, messages, { inlineImages: false }), 'utf8');
+  }
   const file = new AttachmentBuilder(buffer, { name: `transcricao-${channel.name}.html` });
   return { file, count: messages.length };
 }

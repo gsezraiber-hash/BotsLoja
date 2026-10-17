@@ -15,7 +15,7 @@ primary_region = "gru"     # São Paulo (mais perto do Brasil). Veja: fly platfo
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "256mb"
+  memory = "512mb"
 
 # Processo do worker. Como não há serviço HTTP, a máquina fica sempre ligada
 # (worker sem tráfego de entrada — nada para "acordar" o bot depois).
