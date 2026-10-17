@@ -1,5 +1,5 @@
 # Imagem do bot de loja (worker — sem servidor HTTP, só conexão gateway com o Discord)
-FROM node:20-slim
+FROM node:22-slim
 
 # Diretório da aplicação
 WORKDIR /app
