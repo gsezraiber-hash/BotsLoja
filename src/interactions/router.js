@@ -18,7 +18,7 @@ import {
   handleCopyPix,
   handlePaidClaim,
 } from './staff.js';
-import { handleOpenTicket, handleCloseTicket, handleClaim, TICKET_IDS } from './tickets.js';
+import { handleOpenTicket, handleCloseTicket, handleClaim, handleNotifyDm, TICKET_IDS } from './tickets.js';
 import { handleApplyCoupon, handleRemoveCoupon, handleCouponModal } from './coupons.js';
 
 // Separa "prefixo:dado" do customId.
@@ -39,6 +39,7 @@ export async function routeInteraction(interaction) {
         case TICKET_IDS.open:    return await handleOpenTicket(interaction);
         case TICKET_IDS.close:   return await handleCloseTicket(interaction);
         case TICKET_IDS.claim:   return await handleClaim(interaction);
+        case TICKET_IDS.notify:  return await handleNotifyDm(interaction);
         case IDS.openCatalog:    return await handleOpenCatalog(interaction);
         case IDS.buy:            return await handleBuy(interaction, arg);
         case IDS.checkout:       return await handleCheckout(interaction);

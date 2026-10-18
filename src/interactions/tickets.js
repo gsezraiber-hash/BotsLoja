@@ -20,6 +20,7 @@ export const TICKET_IDS = {
   open: 'open_ticket',
   close: 'close_ticket',
   claim: 'claim_ticket',
+  notify: 'notify_ticket_dm',
 };
 
 // Acha o ticket aberto do usuário, ou null.
@@ -105,6 +106,11 @@ export async function getOrCreateTicketChannel(interaction) {
       .setStyle(ButtonStyle.Success)
       .setEmoji('🙋'),
     new ButtonBuilder()
+      .setCustomId(TICKET_IDS.notify)
+      .setLabel('Avisar na DM')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🔔'),
+    new ButtonBuilder()
       .setCustomId(TICKET_IDS.close)
       .setLabel('Fechar ticket')
       .setStyle(ButtonStyle.Secondary)
@@ -176,6 +182,34 @@ export async function handleClaim(interaction) {
     `🙋 <@${interaction.user.id}> assumiu este atendimento.`,
   );
   await interaction.editReply('Você assumiu o atendimento. ✅ Pode gerar o Pix normalmente.');
+}
+
+// Botão "Avisar na DM" — manda uma DM ao dono do ticket avisando que foi respondido.
+export async function handleNotifyDm(interaction) {
+  if (!isStaff(interaction.member)) {
+    return interaction.reply({ content: '⛔ Apenas a equipe pode usar este botão.', ...eph });
+  }
+  await interaction.deferReply(eph);
+
+  const ownerId = ticketOwnerId(interaction.channel);
+  if (!ownerId) return interaction.editReply('Não consegui identificar o dono deste ticket.');
+
+  try {
+    const user = await interaction.client.users.fetch(ownerId);
+    const embed = brandEmbed({ banner: false })
+      .setTitle('🔔 Seu atendimento foi respondido')
+      .setDescription(
+        `Você recebeu uma resposta no seu ticket em **${interaction.guild.name}**.\n` +
+          `Acesse ${interaction.channel} para continuar.`,
+      );
+    await user.send({ embeds: [embed] });
+    await interaction.editReply(`✅ <@${ownerId}> foi avisado(a) por DM.`);
+  } catch {
+    await interaction.editReply(
+      '⚠️ Não consegui enviar DM — o usuário provavelmente fechou as mensagens diretas. ' +
+        'Mencione ele no ticket.',
+    );
+  }
 }
 
 // Desabilita o botão "Assumir" e mostra quem assumiu (mantém o "Fechar ticket").
