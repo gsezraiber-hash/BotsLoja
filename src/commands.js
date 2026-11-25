@@ -171,9 +171,10 @@ export async function handleAutocomplete(interaction) {
 }
 
 async function cmdPainel(interaction) {
-  const embed = brandEmbed()
+  const embed = brandEmbed({ banner: !config.ticketImageUrl })
     .setTitle(`🛒 ${config.brand.name}`)
     .setDescription('Clique abaixo para abrir um ticket e comprar seus peds com segurança.');
+  if (config.ticketImageUrl) embed.setImage(config.ticketImageUrl);
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()

@@ -39,7 +39,7 @@ function sanitize(text, maxLen) {
  * @param {number} p.amount Valor em reais (ex.: 49.90)
  * @param {string} p.merchantName Nome do recebedor (max. 25)
  * @param {string} p.merchantCity Cidade do recebedor (max. 15)
- * @param {string} p.txid  Identificador do pagamento (ex.: MN0042, max. 25, sem espacos)
+ * @param {string} p.txid  Identificador do pagamento (ex.: ES0042, max. 25, sem espacos)
  */
 export function gerarPixCopiaECola({ key, amount, merchantName, merchantCity, txid }) {
   const gui = field('00', 'br.gov.bcb.pix');

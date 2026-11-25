@@ -20,7 +20,13 @@ export const config = {
     transcriptChannelId: process.env.TRANSCRIPT_CHANNEL_ID || null,
     // Canal onde a mensagem de boas-vindas é postada quando alguém entra (deixe vazio pra desativar).
     welcomeChannelId: process.env.WELCOME_CHANNEL_ID || null,
+    // Indicações: canal onde marcam quem indicou (+1 ponto) e canal do ranking.
+    referralChannelId: process.env.REFERRAL_CHANNEL_ID || null,
+    referralRankingChannelId: process.env.REFERRAL_RANKING_CHANNEL_ID || null,
   },
+  // Imagem exibida no painel "Abrir ticket" e na mensagem de atendimento aberto
+  // (se vazia, usa o banner padrão da marca).
+  ticketImageUrl: process.env.TICKET_IMAGE_URL || null,
   // Mensagem de boas-vindas (GuildMemberAdd).
   welcome: {
     title: process.env.WELCOME_TITLE || null, // se vazio, usa um título padrão com o nome da marca
@@ -39,7 +45,7 @@ export const config = {
   brandColor: parseInt(process.env.BRAND_COLOR || 'D4AF37', 16),
   // Identidade visual padronizada dos embeds (faixa/banner + rodapé com a marca).
   brand: (() => {
-    const name = process.env.BRAND_NAME || 'MoonLight';
+    const name = process.env.BRAND_NAME || 'Encanto Studios';
     return {
       name,
       bannerUrl: process.env.BRAND_BANNER_URL || null, // a "faixa" exibida embaixo dos embeds

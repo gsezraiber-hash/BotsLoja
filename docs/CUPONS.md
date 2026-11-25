@@ -1,4 +1,4 @@
-# Cupons de desconto — Loja MoonLight
+# Cupons de desconto — Loja Encanto Studios
 
 Documentação do sistema de cupons: como o cliente usa, como a equipe cria/gerencia, como o desconto é
 calculado e onde cada parte vive no código. Para a visão geral do bot, veja o [README](../README.md) e a

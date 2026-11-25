@@ -1,4 +1,4 @@
-# Loja MoonLight — Bot de Loja para Discord (RedM/peds)
+# Loja Encanto Studios — Bot de Loja para Discord (RedM/peds)
 
 Bot de loja sob encomenda para Discord, com **R$ 0 de mensalidade e 0% de taxa por venda**.
 O cliente abre um atendimento, descreve o ped que quer, fecha o pedido, paga via **Pix
@@ -154,7 +154,7 @@ insert into sellers (discord_user_id, name, pix_key, merchant_name, merchant_cit
 | `PIX_MERCHANT_NAME` | não | Legado (idem `PIX_KEY`). O nome do recebedor vem de `sellers.merchant_name`. |
 | `PIX_MERCHANT_CITY` | não | Legado (idem `PIX_KEY`). A cidade vem de `sellers.merchant_city`. |
 | `BRAND_COLOR` | não | Cor dos embeds em hex sem `#` (padrão `D4AF37`). |
-| `BRAND_NAME` | não | Nome da marca no rodapé e títulos (padrão `MoonLight`). |
+| `BRAND_NAME` | não | Nome da marca no rodapé e títulos (padrão `Encanto Studios`). |
 | `BRAND_BANNER_URL` | não | URL da **faixa/banner** exibida embaixo das mensagens (~960px de largura). Vazio = sem faixa. |
 | `BRAND_LOGO_URL` | não | URL do ícone do rodapé (opcional). Vazio = sem ícone. |
 | `BRAND_FOOTER` | não | Texto do rodapé. Vazio = `© <ano> <BRAND_NAME> • Todos os direitos reservados.` |
@@ -223,7 +223,7 @@ Schema completo em [supabase/schema.sql](supabase/schema.sql). Cinco tabelas:
   `compatibility`, `image_url`, `active`.
 - **sellers** — sócias/vendedoras: `discord_user_id` (quem assume), `name`, `pix_key`, `merchant_name`,
   `merchant_city`, `active`. Veja [Cadastrar as sócias](#cadastrar-as-sócias-vendedoras).
-- **orders** — pedidos: `order_number` (vira o `txid` `MN0042`), `discord_user_id`, `channel_id`,
+- **orders** — pedidos: `order_number` (vira o `txid` `ES0042`), `discord_user_id`, `channel_id`,
   `cart_message_id`, `status`, `total` (já com desconto), `discount`, `coupon_code`, `pix_txid`,
   `claimed_by` (sócia que assumiu/recebe), `reject_reason`, `approved_by`.
 - **order_items** — itens do carrinho: `order_id`, `product_id`, `unit_price` (snapshot), `qty`.
@@ -257,7 +257,7 @@ rode o `supabase/schema.sql` atualizado de novo. Ele cria a tabela `coupons` e a
 [src/lib/pix.js](src/lib/pix.js) monta o **BR Code** no padrão EMV®QRCPS do Banco Central:
 campos TLV (id+tamanho+valor), chave Pix, valor, nome/cidade do recebedor, `txid` e **CRC16-CCITT**.
 A string resultante é o "Copia e Cola"; o QR é só essa string renderizada como imagem (lib `qrcode`).
-O `txid` (ex.: `MN0042`, derivado do `order_number`) liga o pagamento ao pedido no seu extrato.
+O `txid` (ex.: `ES0042`, derivado do `order_number`) liga o pagamento ao pedido no seu extrato.
 
 A **chave, nome e cidade** usados na cobrança vêm da **sócia que assumiu o ticket** (`orders.claimed_by`
 → tabela `sellers`), não de um valor global. Por isso o checkout só gera o Pix depois que alguém assume.

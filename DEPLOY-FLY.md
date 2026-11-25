@@ -80,7 +80,7 @@ Na raiz do projeto (`d:\Projetos\BotsLoja`), crie o app **sem fazer deploy ainda
 fly apps create loja-bot
 ```
 
-> O nome `loja-bot` precisa ser **único no Fly**. Se já existir, escolha outro (ex.: `loja-moonlight-bot`)
+> O nome `loja-bot` precisa ser **único no Fly**. Se já existir, escolha outro (ex.: `loja-encanto-bot`)
 > e **atualize o campo `app =`** no [`fly.toml`](fly.toml) para o mesmo nome.
 
 A região já está fixada em `gru` (São Paulo) no `fly.toml`. Para ver outras: `fly platform regions`.

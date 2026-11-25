@@ -82,7 +82,7 @@ export async function getOrCreateTicketChannel(interaction) {
     ],
   });
 
-  const welcome = brandEmbed()
+  const welcome = brandEmbed({ banner: !config.ticketImageUrl })
     .setTitle('🎫 Atendimento aberto')
     .setDescription(
       [
@@ -98,6 +98,7 @@ export async function getOrCreateTicketChannel(interaction) {
           'use o menu abaixo pra montar o pedido e gerar o Pix.',
       ].join('\n'),
     );
+  if (config.ticketImageUrl) welcome.setImage(config.ticketImageUrl);
 
   const closeRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()

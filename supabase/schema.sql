@@ -141,3 +141,25 @@ create trigger trg_orders_updated_at
 create index if not exists idx_orders_channel on orders(channel_id);
 create index if not exists idx_orders_status on orders(status);
 create index if not exists idx_order_items_order on order_items(order_id);
+
+-- ---------------------------------------------------------------
+-- INDICAÇÕES: quem entrou marca (@) quem o indicou no canal de indicação e
+-- o indicador ganha 1 ponto. `referred_id` é único: cada pessoa só pode
+-- indicar uma vez (a primeira marcação vale).
+-- ---------------------------------------------------------------
+create table if not exists referrals (
+  id          uuid primary key default gen_random_uuid(),
+  referrer_id text not null,                      -- quem indicou (ganha o ponto)
+  referred_id text not null unique,               -- quem veio por indicação
+  message_id  text,
+  created_at  timestamptz not null default now(),
+  check (referrer_id <> referred_id)
+);
+
+create index if not exists idx_referrals_referrer on referrals(referrer_id);
+
+-- Ranking: pontos por indicador (1 indicação = 1 ponto).
+create or replace view referral_ranking as
+  select referrer_id, count(*)::int as points, min(created_at) as first_at
+  from referrals
+  group by referrer_id;

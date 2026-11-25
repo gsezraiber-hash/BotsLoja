@@ -50,8 +50,8 @@ export async function handleCheckout(interaction) {
     );
   }
 
-  // txid baseado no número do pedido: MN0042
-  const txid = `MN${String(order.order_number).padStart(4, '0')}`;
+  // txid baseado no número do pedido: ES0042
+  const txid = `ES${String(order.order_number).padStart(4, '0')}`;
 
   const copiaECola = gerarPixCopiaECola({
     key: seller.pix_key,

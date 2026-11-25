@@ -197,6 +197,30 @@ export function announceEmbed({ title, message, imageUrl }) {
   return embed;
 }
 
+// Ranking de indicações (top indicadores). `rows` vem de db/referrals.getRanking().
+export function rankingEmbed(rows) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const lines = rows.length
+    ? rows.map(
+        (r, i) =>
+          `${medals[i] || `**${i + 1}º**`} <@${r.referrer_id}> — **${r.points}** ponto${r.points === 1 ? '' : 's'}`,
+      )
+    : ['_Ninguém pontuou ainda. Seja o primeiro a indicar!_'];
+  const channelId = config.discord.referralChannelId;
+  return brandEmbed()
+    .setTitle('🏆 Ranking de Indicações')
+    .setDescription(
+      [
+        ...lines,
+        '',
+        channelId
+          ? `Veio por indicação? Marque quem te indicou em <#${channelId}> e a pessoa ganha **1 ponto**!`
+          : 'Marque quem te indicou e a pessoa ganha **1 ponto**!',
+      ].join('\n'),
+    )
+    .setTimestamp();
+}
+
 // Mensagem de venda registrada no canal #vendas.
 export function saleEmbed(order, items, buyerTag, approverTag) {
   const discount = Number(order.discount) || 0;

@@ -1,4 +1,4 @@
-# Arquitetura — Loja MoonLight
+# Arquitetura — Loja Encanto Studios
 
 Documentação técnica do bot. Para instalação e uso, veja o [README](../README.md). O sistema de cupons
 de desconto tem documentação própria em [CUPONS.md](CUPONS.md).
