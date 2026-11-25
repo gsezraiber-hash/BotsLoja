@@ -52,7 +52,7 @@ export const config = {
       logoUrl: process.env.BRAND_LOGO_URL || null,     // ícone do rodapé (opcional)
       footer:
         process.env.BRAND_FOOTER ||
-        `© ${new Date().getFullYear()} ${name} • Todos os direitos reservados.`,
+        `© ${new Date().getFullYear()} Encanto • Todos os direitos reservados.`,
     };
   })(),
 };

@@ -157,7 +157,7 @@ insert into sellers (discord_user_id, name, pix_key, merchant_name, merchant_cit
 | `BRAND_NAME` | não | Nome da marca no rodapé e títulos (padrão `Encanto Studios`). |
 | `BRAND_BANNER_URL` | não | URL da **faixa/banner** exibida embaixo das mensagens (~960px de largura). Vazio = sem faixa. |
 | `BRAND_LOGO_URL` | não | URL do ícone do rodapé (opcional). Vazio = sem ícone. |
-| `BRAND_FOOTER` | não | Texto do rodapé. Vazio = `© <ano> <BRAND_NAME> • Todos os direitos reservados.` |
+| `BRAND_FOOTER` | não | Texto do rodapé. Vazio = `© <ano> Encanto • Todos os direitos reservados.` |
 
 > ¹ `PIX_KEY` não é mais usado para gerar cobranças (cada Pix sai da chave da sócia que assumiu), mas
 > `config.js` ainda o valida na inicialização. Pode deixar qualquer valor válido enquanto não for removido.

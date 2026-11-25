@@ -2,9 +2,6 @@ import { config } from '../config.js';
 import { addReferral, getPoints, getRanking } from '../db/referrals.js';
 import { rankingEmbed } from '../lib/embeds.js';
 
-// Marcador no rodapé pra reencontrar a mensagem do ranking e editá-la (em vez de repostar).
-const RANKING_TAG = 'ranking-indicacoes';
-
 // Responde e apaga a resposta depois de alguns segundos pra não poluir o canal.
 async function tempReply(message, content, ms = 10_000) {
   const reply = await message
@@ -14,6 +11,7 @@ async function tempReply(message, content, ms = 10_000) {
 }
 
 // Atualiza (ou cria) a mensagem fixa do ranking no canal de ranking.
+// A mensagem existente é reencontrada pelo título do embed.
 export async function refreshRanking(client) {
   const channelId = config.discord.referralRankingChannelId;
   if (!channelId) return;
@@ -21,11 +19,11 @@ export async function refreshRanking(client) {
   if (!channel?.isTextBased()) return;
 
   const rows = await getRanking(10);
-  const embed = rankingEmbed(rows).setFooter({ text: `${config.brand.name} • ${RANKING_TAG}` });
+  const embed = rankingEmbed(rows);
 
   const recent = await channel.messages.fetch({ limit: 30 }).catch(() => null);
   const existing = recent?.find(
-    (m) => m.author.id === client.user.id && m.embeds[0]?.footer?.text?.endsWith(RANKING_TAG),
+    (m) => m.author.id === client.user.id && m.embeds[0]?.title === embed.data.title,
   );
   if (existing) await existing.edit({ embeds: [embed] });
   else await channel.send({ embeds: [embed] });

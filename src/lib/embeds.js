@@ -29,7 +29,7 @@ export function itemLine(i) {
 // Card de um ped no catálogo (canal-vitrine ou ticket).
 export function productEmbed(p) {
   // banner desligado: a imagem principal do card é o preview do ped.
-  const embed = brandEmbed({ banner: false, footer: `${config.brand.name} • id: ${p.sku}` })
+  const embed = brandEmbed({ banner: false })
     .setTitle(p.name);
 
   if (p.description) embed.setDescription(p.description);
@@ -38,6 +38,7 @@ export function productEmbed(p) {
   const fields = [{ name: 'Preço', value: brl(p.price), inline: true }];
   if (p.category) fields.push({ name: 'Categoria', value: p.category, inline: true });
   if (p.compatibility) fields.push({ name: 'Compatibilidade', value: p.compatibility, inline: true });
+  fields.push({ name: 'ID', value: p.sku, inline: true });
   embed.addFields(fields);
 
   return embed;
