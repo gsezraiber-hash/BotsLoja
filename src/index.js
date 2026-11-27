@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { routeInteraction } from './interactions/router.js';
 import { welcomeEmbed } from './lib/embeds.js';
 import { handleReferralMessage, refreshRanking } from './interactions/referrals.js';
+import { migrateOpenTickets } from './interactions/tickets.js';
 
 const client = new Client({
   intents: [
@@ -20,6 +21,7 @@ const client = new Client({
 client.once(Events.ClientReady, (c) => {
   console.log(`✅ Bot online como ${c.user.tag}`);
   refreshRanking(c).catch((e) => console.error('Falha ao montar ranking de indicações:', e));
+  migrateOpenTickets(c).catch((e) => console.error('Falha ao atualizar tickets antigos:', e));
 });
 
 // Indicações: marcar quem indicou no canal de indicação dá +1 ponto pra essa pessoa.

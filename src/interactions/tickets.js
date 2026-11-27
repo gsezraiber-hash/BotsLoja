@@ -374,3 +374,61 @@ export async function handleCloseTicket(interaction) {
   await saveTranscript(interaction.channel, interaction.user);
   setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
 }
+
+// Atualiza os tickets que já estavam abertos antes do botão "Entregue" existir:
+// renomeia para "pendente-<nome>" (ou "entregue-<nome>" se já estiver na categoria
+// de entregues) e acrescenta o botão "Entregue" na mensagem inicial.
+// Roda ao ligar o bot; é idempotente (o que já está atualizado é pulado).
+export async function migrateOpenTickets(client) {
+  const guild = await client.guilds.fetch(config.discord.guildId).catch(() => null);
+  if (!guild) return;
+  const channels = await guild.channels.fetch();
+  const tickets = channels.filter(
+    (c) => c?.type === ChannelType.GuildText && /^ticket:\d+$/.test(c.topic || ''),
+  );
+
+  let renamed = 0;
+  let buttons = 0;
+  for (const channel of tickets.values()) {
+    try {
+      const ownerId = ticketOwnerId(channel);
+
+      if (!/^(pendente|entregue)-/.test(channel.name)) {
+        const member = await guild.members.fetch(ownerId).catch(() => null);
+        const user = member?.user || (await client.users.fetch(ownerId).catch(() => null));
+        const status = channel.parentId === config.discord.deliveredCategoryId ? 'entregue' : 'pendente';
+        await channel.setName(ticketChannelName(status, ownerDisplayName(member, user)));
+        renamed++;
+      }
+
+      // A mensagem inicial é uma das primeiras do canal e tem o botão "Assumir".
+      const first = await channel.messages.fetch({ after: '0', limit: 10 });
+      const welcome = first.find(
+        (m) =>
+          m.author.id === client.user.id &&
+          m.components.some((row) => row.components.some((c) => c.customId === TICKET_IDS.claim)),
+      );
+      const hasDelivered = welcome?.components.some((row) =>
+        row.components.some((c) => c.customId === TICKET_IDS.delivered),
+      );
+      if (welcome && !hasDelivered) {
+        const rows = welcome.components.map((row) => ActionRowBuilder.from(row));
+        const target = rows.find((r) => r.components.some((c) => c.data?.custom_id === TICKET_IDS.claim));
+        if (target.components.length < 5) {
+          target.addComponents(
+            new ButtonBuilder()
+              .setCustomId(TICKET_IDS.delivered)
+              .setLabel('Entregue')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('📦'),
+          );
+          await welcome.edit({ components: rows });
+          buttons++;
+        }
+      }
+    } catch (err) {
+      console.error(`Falha ao atualizar o ticket #${channel.name}:`, err);
+    }
+  }
+  console.log(`🎫 Tickets antigos atualizados: ${renamed} renomeados, ${buttons} com botão Entregue.`);
+}
