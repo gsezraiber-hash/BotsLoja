@@ -21,6 +21,8 @@ export const TICKET_IDS = {
   close: 'close_ticket',
   claim: 'claim_ticket',
   notify: 'notify_ticket_dm',
+  delivered: 'delivered_ticket',
+  reopen: 'reopen_ticket',
 };
 
 // Acha o ticket aberto do usuário, ou null.
@@ -30,19 +32,22 @@ function findUserTicket(guild, userId) {
   );
 }
 
-// Monta o nome do canal a partir do número do pedido (e, depois de assumido,
-// do apelido de quem atende). Ex.: "0042" -> "0042-ana".
-function ticketChannelName(orderNumber, attendant) {
-  const base = String(orderNumber).padStart(4, '0');
-  if (!attendant) return base;
-  // Discord só aceita letras minúsculas, números e hífens no nome do canal.
-  const slug = attendant
+// Monta o nome do canal a partir do status e do nome de quem abriu o ticket.
+// Ex.: ("pendente", "Ana Clara") -> "pendente-ana-clara".
+// (O Discord só aceita letras minúsculas, números e hífens em canais de texto.)
+function ticketChannelName(status, ownerName) {
+  const slug = String(ownerName || 'cliente')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return `${base}-${slug}`.slice(0, 90);
+    .replace(/^-+|-+$/g, '') || 'cliente';
+  return `${status}-${slug}`.slice(0, 90);
+}
+
+// Nome exibido de quem abriu o ticket (apelido no servidor > nome global > usuário).
+function ownerDisplayName(member, user) {
+  return member?.displayName || user?.globalName || user?.username;
 }
 
 // Cria o ticket individual do usuário (ou retorna o existente).
@@ -55,7 +60,7 @@ export async function getOrCreateTicketChannel(interaction) {
   if (existing) return existing;
 
   const channel = await guild.channels.create({
-    name: 'ticket-novo',
+    name: ticketChannelName('pendente', ownerDisplayName(interaction.member, interaction.user)),
     type: ChannelType.GuildText,
     parent: config.discord.ticketCategoryId || undefined,
     topic: `ticket:${interaction.user.id}`,
@@ -112,6 +117,11 @@ export async function getOrCreateTicketChannel(interaction) {
       .setStyle(ButtonStyle.Primary)
       .setEmoji('🔔'),
     new ButtonBuilder()
+      .setCustomId(TICKET_IDS.delivered)
+      .setLabel('Entregue')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('📦'),
+    new ButtonBuilder()
       .setCustomId(TICKET_IDS.close)
       .setLabel('Fechar ticket')
       .setStyle(ButtonStyle.Secondary)
@@ -129,9 +139,6 @@ export async function getOrCreateTicketChannel(interaction) {
     discordUserId: interaction.user.id,
     channelId: channel.id,
   });
-
-  // O nome do canal passa a ser o número do pedido (ex.: "0042").
-  await channel.setName(ticketChannelName(order.order_number)).catch(() => {});
 
   await refreshCartMessage(channel, order);
 
@@ -174,11 +181,6 @@ export async function handleClaim(interaction) {
   await updateOrder(order.id, { claimed_by: interaction.user.id });
   await disableClaimButton(interaction.message, seller.name);
 
-  // Renomeia o canal acrescentando o apelido (nunca o usuário) de quem assumiu.
-  // Ex.: "0042" -> "0042-ana".
-  const apelido = interaction.member?.displayName || seller.name;
-  await interaction.channel.setName(ticketChannelName(order.order_number, apelido)).catch(() => {});
-
   await interaction.channel.send(
     `🙋 <@${interaction.user.id}> assumiu este atendimento.`,
   );
@@ -211,6 +213,109 @@ export async function handleNotifyDm(interaction) {
         'Mencione ele no ticket.',
     );
   }
+}
+
+// Botão "Entregue" — move o ticket para a categoria de entregues e troca o
+// prefixo do nome de "pendente-" para "entregue-".
+export async function handleDelivered(interaction) {
+  if (!isStaff(interaction.member)) {
+    return interaction.reply({ content: '⛔ Apenas a equipe pode usar este botão.', ...eph });
+  }
+  await interaction.deferReply(eph);
+
+  const channel = interaction.channel;
+  if (channel.parentId === config.discord.deliveredCategoryId) {
+    return interaction.editReply('Este ticket já está marcado como entregue.');
+  }
+
+  try {
+    // lockPermissions: false mantém as permissões do ticket (cliente + equipe).
+    await channel.setParent(config.discord.deliveredCategoryId, { lockPermissions: false });
+  } catch (err) {
+    console.error('Falha ao mover ticket para entregues:', err);
+    return interaction.editReply(
+      '⚠️ Não consegui mover o ticket. Confira se a categoria existe, se não está cheia (50 canais) ' +
+        'e se o bot tem permissão de Gerenciar Canais.',
+    );
+  }
+
+  // Sem await: o Discord limita renomear a 2x a cada 10 min por canal, e o
+  // discord.js ficaria esperando o limite liberar em vez de responder.
+  renameStatus(channel, 'pendente', 'entregue');
+
+  const ownerId = ticketOwnerId(channel);
+  const panel = brandEmbed({ banner: false })
+    .setTitle('📦 Pedido entregue!')
+    .setDescription(
+      [
+        `Seu pedido foi marcado como **entregue** por <@${interaction.user.id}>. Obrigado pela preferência! 💛`,
+        '',
+        'Quer encomendar mais alguma coisa? É só clicar no botão abaixo que a gente ' +
+          'reabre o seu atendimento por aqui mesmo.',
+      ].join('\n'),
+    );
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(TICKET_IDS.reopen)
+      .setLabel('Fazer novo pedido')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🛒'),
+  );
+  await channel.send({
+    content: ownerId ? `<@${ownerId}>` : undefined,
+    embeds: [panel],
+    components: [row],
+  });
+  await interaction.editReply('✅ Ticket movido para a categoria de entregues.');
+}
+
+// Botão "Fazer novo pedido" (painel pós-entrega) — volta o ticket para a categoria
+// de tickets, renomeia para "pendente-..." e abre um carrinho novo.
+export async function handleReopen(interaction) {
+  const channel = interaction.channel;
+  const ownerId = ticketOwnerId(channel);
+  if (interaction.user.id !== ownerId && !isStaff(interaction.member)) {
+    return interaction.reply({ content: '⛔ Apenas o dono do ticket pode fazer um novo pedido aqui.', ...eph });
+  }
+  await interaction.deferReply(eph);
+
+  if (config.discord.ticketCategoryId && channel.parentId !== config.discord.ticketCategoryId) {
+    try {
+      await channel.setParent(config.discord.ticketCategoryId, { lockPermissions: false });
+    } catch (err) {
+      console.error('Falha ao mover ticket de volta para a categoria de tickets:', err);
+      return interaction.editReply('⚠️ Não consegui reabrir o ticket agora. Chame a equipe por aqui.');
+    }
+  }
+  renameStatus(channel, 'entregue', 'pendente');
+
+  // Desativa o botão do painel para não abrir dois pedidos.
+  await interaction.message
+    .edit({
+      components: [
+        new ActionRowBuilder().addComponents(
+          ButtonBuilder.from(interaction.message.components[0].components[0])
+            .setDisabled(true)
+            .setLabel('Novo pedido aberto'),
+        ),
+      ],
+    })
+    .catch(() => {});
+
+  const order = await getOrCreateOrder({ discordUserId: ownerId || interaction.user.id, channelId: channel.id });
+  await channel.send(
+    `🛒 <@${interaction.user.id}> quer fazer um **novo pedido**! <@&${config.discord.staffRoleId}>\n` +
+      'Conta pra gente os detalhes e use o menu abaixo pra montar o pedido.',
+  );
+  await refreshCartMessage(channel, order);
+
+  await interaction.editReply('✅ Atendimento reaberto! Seu novo carrinho está logo abaixo.');
+}
+
+// Troca o prefixo de status do nome do canal (ex.: "entregue-ana" -> "pendente-ana").
+function renameStatus(channel, from, to) {
+  const newName = channel.name.replace(new RegExp(`^${from}-`), `${to}-`);
+  if (newName !== channel.name) channel.setName(newName).catch(() => {});
 }
 
 // Desabilita o botão "Assumir" e mostra quem assumiu (mantém o "Fechar ticket").

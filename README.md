@@ -146,6 +146,7 @@ insert into sellers (discord_user_id, name, pix_key, merchant_name, merchant_cit
 | `GUILD_ID` | sim | ID do servidor onde os comandos são registrados. |
 | `STAFF_ROLE_ID` | sim | Cargo da equipe (quem pode aprovar/recusar). |
 | `TICKET_CATEGORY_ID` | não | Categoria onde os tickets são criados. |
+| `DELIVERED_CATEGORY_ID` | não | Categoria para onde o botão **Entregue** move o ticket (padrão `1575694186882015323`). |
 | `CATALOG_CHANNEL_ID` | não | Canal onde `/vitrine` publica o catálogo. Se vazio, publica no canal atual. |
 | `SALES_CHANNEL_ID` | não | Canal `#vendas` para registrar as vendas aprovadas. |
 | `SUPABASE_URL` | sim | URL do projeto Supabase. |

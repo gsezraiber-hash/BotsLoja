@@ -13,6 +13,8 @@ export const config = {
     guildId: required('GUILD_ID'),
     staffRoleId: required('STAFF_ROLE_ID'),
     ticketCategoryId: process.env.TICKET_CATEGORY_ID || null,
+    // Categoria para onde o ticket é movido ao clicar em "Entregue".
+    deliveredCategoryId: process.env.DELIVERED_CATEGORY_ID || '1575694186882015323',
     // Canal onde fica o painel "Abrir ticket" (postado com /painel); citado no card de boas-vindas.
     ticketPanelChannelId: process.env.TICKET_PANEL_CHANNEL_ID || null,
     catalogChannelId: process.env.CATALOG_CHANNEL_ID || null,
